@@ -67,7 +67,7 @@ source ${CONFIG}
 # STEP 1: TRIM INPUT FASTQs USING TRIM GALORE
 
 echo "STEP 1: TRIMMING ..."
-$TRIMGALORE -j 8 --phred33 --fastqc --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
+$TRIMGALORE -j 8 --phred33 --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
 
 # STEP 2: MAP
 
