@@ -7,12 +7,7 @@
 #author                 :Fernanda Martins Rodrigues (fernanda@wustl.edu)
 #date                   :09272022
 #usage                  :bash fastq2bam.sh -1 [R1 fastq file] -2 [R2 fastq file] -s [sample ID] -o [output directory] -C [config.ini file] 
-#notes                  :Install samtools, trimmomatic, fastQC, bwa and picard to use this script.
-#samtools version       :1.9
-#trim Galore version    :0.6.7
-#fastQC version         :0.11.9
-#bwa version            :0.7.17-r1188
-#picard version         :2.27.4
+#notes                  :Install samtools, trim-galore, fastQC, bwa and picard to use this script.
 #bash_version           :4.2.46(2)-release (x86_64-redhat-linux-gnu)
 # ------------------------------------------------------------------
 
@@ -71,33 +66,36 @@ source ${CONFIG}
 
 # STEP 1: TRIM INPUT FASTQs USING TRIM GALORE
 
-$TRIMGALORE -j 6 --phred33 --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
+echo "STEP 1: TRIMMING ..."
+$TRIMGALORE -j 6 --phred33 --fastqc --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
 
 # STEP 2: MAP
 
+echo "STEP 2: ALIGNING ..."
 $BWA mem -t 8 -M -R "@RG\tID:$SAMPLE_ID\tPL:illumina\tLB:$SAMPLE_ID\tPU:$SAMPLE_ID\tSM:$SAMPLE_ID" ${GENOME} ${OUT_DIRECTORY}${SAMPLE_ID}_val_1.fq.gz ${OUT_DIRECTORY}${SAMPLE_ID}_val_2.fq.gz | samtools view -Shb -o ${OUT_DIRECTORY}${SAMPLE_ID}.bam -
 
 # STEP 3: SORT BAM
 
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_R1_trimmed.fq.gz
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_R2_trimmed.fq.gz
 rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_1.fq.gz
 rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_2.fq.gz
 
-
+echo "STEP 3: SORTING BAM FILE ..."
 $SAMTOOLS sort ${OUT_DIRECTORY}${SAMPLE_ID}.bam -o ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam
 
 # STEP 4: MARK DUPLICATES
 
 rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.bam
 
+echo "STEP 4: MARKING DUPLICATES ..."
 $PICARD MarkDuplicates I=${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam O=${OUT_DIRECTORY}${SAMPLE_ID}.sorted.markedDup.bam M=${OUT_DIRECTORY}${SAMPLE_ID}.marked_dup_metrics.txt VALIDATION_STRINGENCY=STRICT CREATE_MD5_FILE=true
 
 # STEP 5: INDEX FINAL BAM
 
 rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam
 
+echo "STEP 5: INDEXING FINAL BAM ..."
 $SAMTOOLS index ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.markedDup.bam
 
+echo "DONE!"
 
 # --- End --------------------------------------------------------
