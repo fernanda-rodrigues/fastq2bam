@@ -67,7 +67,7 @@ source ${CONFIG}
 # STEP 1: TRIM INPUT FASTQs USING TRIM GALORE
 
 echo "STEP 1: TRIMMING ..."
-$TRIMGALORE -j 6 --phred33 --fastqc --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
+$TRIMGALORE -j 8 --phred33 --fastqc --length 36 -q 20 --no_report_file -o ${OUT_DIRECTORY} --basename ${SAMPLE_ID} --paired ${FQ1} ${FQ2}
 
 # STEP 2: MAP
 
@@ -76,22 +76,31 @@ $BWA mem -t 8 -M -R "@RG\tID:$SAMPLE_ID\tPL:illumina\tLB:$SAMPLE_ID\tPU:$SAMPLE_
 
 # STEP 3: SORT BAM
 
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_1.fq.gz
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_2.fq.gz
+if [ -f '${OUT_DIRECTORY}${SAMPLE_ID}.bam' ]
+then
+    rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_1.fq.gz
+    rm -I ${OUT_DIRECTORY}${SAMPLE_ID}_val_2.fq.gz
+fi
 
 echo "STEP 3: SORTING BAM FILE ..."
 $SAMTOOLS sort ${OUT_DIRECTORY}${SAMPLE_ID}.bam -o ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam
 
 # STEP 4: MARK DUPLICATES
 
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.bam
+if [ -f '${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam' ]
+then
+    rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.bam
+fi
 
 echo "STEP 4: MARKING DUPLICATES ..."
 $PICARD MarkDuplicates I=${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam O=${OUT_DIRECTORY}${SAMPLE_ID}.sorted.markedDup.bam M=${OUT_DIRECTORY}${SAMPLE_ID}.marked_dup_metrics.txt VALIDATION_STRINGENCY=STRICT CREATE_MD5_FILE=true
 
 # STEP 5: INDEX FINAL BAM
 
-rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam
+if [ -f '${OUT_DIRECTORY}${SAMPLE_ID}.sorted.markedDup.bam' ]
+then
+    rm -I ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.bam
+fi
 
 echo "STEP 5: INDEXING FINAL BAM ..."
 $SAMTOOLS index ${OUT_DIRECTORY}${SAMPLE_ID}.sorted.markedDup.bam
